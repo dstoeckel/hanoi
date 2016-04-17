@@ -1,0 +1,40 @@
+<!DOCTYPE HTML>
+<html>
+	<head>
+		<meta charset="UTF-8">
+		<style>
+			#game {
+				width: 100%;
+				height: 100%;
+				display: flex;
+				align-items: center;
+				justify-content: center
+			}
+
+			.ring1 { fill: #EDD400}
+			.ring2 { fill: #73D216}
+			.ring3 { fill: #F57900}
+			.ring4 { fill: #3465A4}
+			.ring5 { fill: #75507B}
+			.ring6 { fill: #CC0000}
+			.peg, .base { fill: #C17D11 }
+
+			g.pegGroup:hover .ring1 { fill: #FCE94F}
+			g.pegGroup:hover .ring2 { fill: #8AE234}
+			g.pegGroup:hover .ring3 { fill: #FCAF3E}
+			g.pegGroup:hover .ring4 { fill: #729FCF}
+			g.pegGroup:hover .ring5 { fill: #AD7FA8}
+			g.pegGroup:hover .ring6 { fill: #EF2929}
+			g.pegGroup:hover .peg { fill: #E9B96E}
+		</style>
+	</head>
+	<body>
+		<h1>Die Türme von Hanoi</h1>
+		<div id="game"></div>
+		<script src="Hanoi.js"></script>
+		<script>
+			var game = document.getElementById('game');
+			Elm.embed(Elm.Hanoi, game);
+		</script>
+	</body>
+</html>
