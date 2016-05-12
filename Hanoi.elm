@@ -1,22 +1,28 @@
-module Hanoi (..) where
+module Hanoi exposing (..)
 
 import String
 import Svg exposing (rect, svg)
 import Svg.Attributes exposing (width, height, x, y, class, points, transform)
 import Html exposing (div, button, text, input, label)
+import Html.App as App
 import Html.Attributes
 import Html.Events exposing (onClick, on)
-import StartApp.Simple as StartApp
+import Json.Decode as Json
 
 
 main =
-  StartApp.start { model = init 4, view = view, update = update }
+  App.program
+    { init = (init 4, Cmd.none)
+    , view = view
+    , update = update
+    , subscriptions = \_ -> Sub.none
+    }
 
 
 type Peg = Left | Right | Middle
 
 
-type Action = Reset | Select Peg | NumRings Int
+type Msg = Reset | Select Peg | NumRings Int
 
 
 type alias Model =
@@ -56,7 +62,7 @@ ringMinWidth = 25
 ringMaxWidth = 100
 
 
-ring address numRing peg numRingOnPeg pos id =
+ring numRing peg numRingOnPeg pos id =
   let
     w =
       (ringMaxWidth * id) // numRing
@@ -70,7 +76,7 @@ ring address numRing peg numRingOnPeg pos id =
       , (toString >> y) shift
       , (toString >> width) w
       , class ("ring ring" ++ toString id)
-      , onClick address (Select peg)
+      , onClick (Select peg)
       ] []
 
 
@@ -90,14 +96,14 @@ pegPosition peg =
     * (ringMaxWidth + spacing)
 
 
-peg address p numRings =
+peg p numRings =
   rect
     [ class "peg"
     , (toString >> width) pegWidth
     , (pegHeight >> toString >> height) numRings
     , (toString >> x) (pegPosition p)
     , (toString >> y) selectionHeight
-    , onClick address (Select p)
+    , onClick (Select p)
     ] []
 
 
@@ -118,9 +124,8 @@ base numRings =
     ] []
 
 
-
 -- Draw an arrow above the given peg
-arrow : Peg -> Svg.Svg
+arrow : Peg -> Svg.Svg msg
 arrow p =
   Svg.polygon
     [ points "5,15 10,8 7,8 7,0 3,0 3,8 0,8"
@@ -129,11 +134,10 @@ arrow p =
 
 
 -- Draw a peg an all its rings
--- This needs the update-address for connecting the onClick event
-drawPeg address numRings selection p rings =
+drawPeg numRings selection p rings =
   let
     drawRing =
-      ring address numRings p (List.length rings)
+      ring numRings p (List.length rings)
 
     selectionIndicator =
       if isSelected p selection then
@@ -142,7 +146,7 @@ drawPeg address numRings selection p rings =
         []
 
     pegs =
-      [ peg address p numRings ]
+      [ peg p numRings ]
 
     items =
       List.indexedMap drawRing rings
@@ -162,10 +166,10 @@ isSelected peg sel =
       peg == a
 
 
-board address model =
+board model =
   let
     f =
-      drawPeg address model.rings model.selected
+      drawPeg model.rings model.selected
   in
     svg
       [ (toString >> width) baseWidth
@@ -178,37 +182,36 @@ board address model =
       ]
 
 
-inputNumRings address numRings x =
+inputNumRings: Int -> String -> Msg
+inputNumRings numRings x =
   let
     decoded =
       Result.withDefault numRings (String.toInt x)
-
-    n =
-      (max minNumRings (min maxNumRings decoded))
   in
-    Signal.message address (NumRings n)
+    NumRings (max minNumRings (min maxNumRings decoded))
 
 
 minNumRings = 1
 maxNumRings = 6
 
 
-ringInput numRings address =
+ringInput: Int -> Html.Html Msg
+ringInput numRings =
   input
     [ Html.Attributes.type' "number"
     , Html.Attributes.min "1"
     , Html.Attributes.max "6"
     , Html.Attributes.value (toString numRings)
-    , on "change" Html.Events.targetValue (inputNumRings address numRings)
+    , on "change" (Json.map (inputNumRings numRings) Html.Events.targetValue)
     ] []
 
 
-view address model =
+view model =
   div []
-    [ button [ onClick address Reset ] [ text "Neu" ]
+    [ button [ onClick Reset ] [ text "Neu" ]
     , text " "
-    , label [] [ text "Ringe: ", ringInput model.rings address ]
-    , div [] [ board address model ]
+    , label [] [ text "Ringe: ", ringInput model.rings ]
+    , div [] [ board model ]
     ]
 
 
@@ -281,8 +284,9 @@ allowed model from to =
       from < to
 
 
-update action model =
-  case action of
+updateImpl: Msg -> Model -> Model
+updateImpl msg model =
+  case msg of
     Reset ->
       init model.rings
 
@@ -300,6 +304,9 @@ update action model =
         Just from ->
           move model from peg
 
+update: Msg -> Model -> (Model, Cmd a)
+update msg model =
+    (updateImpl msg model, Cmd.none)
 
 move : Model -> Peg -> Peg -> Model
 move model from to =
