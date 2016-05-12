@@ -208,9 +208,9 @@ ringInput numRings =
 
 view model =
   div []
-    [ button [ onClick Reset ] [ text "Neu" ]
+    [ button [ onClick Reset ] [ text "Reset" ]
     , text " "
-    , label [] [ text "Ringe: ", ringInput model.rings ]
+    , label [] [ text "Rings: ", ringInput model.rings ]
     , div [] [ board model ]
     ]
 
