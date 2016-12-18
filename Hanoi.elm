@@ -3,15 +3,14 @@ module Hanoi exposing (..)
 import String
 import Svg exposing (rect, svg)
 import Svg.Attributes exposing (width, height, x, y, class, points, transform)
-import Html exposing (div, button, text, input, label)
-import Html.App as App
+import Html exposing (div, button, text, input, label, program)
 import Html.Attributes
 import Html.Events exposing (onClick, on)
 import Json.Decode as Json
 
 
 main =
-  App.program
+  program
     { init = (init 4, Cmd.none)
     , view = view
     , update = update
@@ -198,7 +197,7 @@ maxNumRings = 6
 ringInput: Int -> Html.Html Msg
 ringInput numRings =
   input
-    [ Html.Attributes.type' "number"
+    [ Html.Attributes.type_ "number"
     , Html.Attributes.min "1"
     , Html.Attributes.max "6"
     , Html.Attributes.value (toString numRings)
@@ -309,16 +308,16 @@ update msg model =
     (updateImpl msg model, Cmd.none)
 
 move : Model -> Peg -> Peg -> Model
-move model from to =
+move oldModel from to =
   let
     fromRing =
-      topRing model from
+      topRing oldModel from
 
     toRing =
-      topRing model to
+      topRing oldModel to
 
     model =
-      { model | selected = Nothing }
+      { oldModel | selected = Nothing }
   in
     case fromRing of
       Just ring ->
