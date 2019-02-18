@@ -1,20 +1,18 @@
 module Hanoi exposing (..)
 
-import String
 import Svg exposing (rect, svg)
 import Svg.Attributes exposing (width, height, x, y, class, points, transform)
-import Html exposing (div, button, text, input, label, program)
+import Html exposing (div, button, text, input, label)
 import Html.Attributes
-import Html.Events exposing (onClick, on)
-import Json.Decode as Json
+import Html.Events exposing (onClick, onInput)
+import Browser exposing ( sandbox )
 
 
 main =
-  program
-    { init = (init 4, Cmd.none)
+  sandbox
+    { init = init 4
     , view = view
     , update = update
-    , subscriptions = \_ -> Sub.none
     }
 
 
@@ -61,7 +59,7 @@ ringMinWidth = 25
 ringMaxWidth = 100
 
 
-ring numRing peg numRingOnPeg pos id =
+makeRing numRing peg numRingOnPeg pos id =
   let
     w =
       (ringMaxWidth * id) // numRing
@@ -70,11 +68,11 @@ ring numRing peg numRingOnPeg pos id =
       pegHeight numRing - (numRingOnPeg - pos) * ringHeight + selectionHeight
   in
     rect
-      [ (toString >> height) ringHeight
-      , (toString >> x) (pegPosition peg + (pegWidth - w) // 2)
-      , (toString >> y) shift
-      , (toString >> width) w
-      , class ("ring ring" ++ toString id)
+      [ (String.fromInt >> height) ringHeight
+      , (String.fromInt >> x) (pegPosition peg + (pegWidth - w) // 2)
+      , (String.fromInt >> y) shift
+      , (String.fromInt >> width) w
+      , class ("ring ring" ++ String.fromInt id)
       , onClick (Select peg)
       ] []
 
@@ -95,13 +93,13 @@ pegPosition peg =
     * (ringMaxWidth + spacing)
 
 
-peg p numRings =
+makePeg p numRings =
   rect
     [ class "peg"
-    , (toString >> width) pegWidth
-    , (pegHeight >> toString >> height) numRings
-    , (toString >> x) (pegPosition p)
-    , (toString >> y) selectionHeight
+    , (String.fromInt >> width) pegWidth
+    , (pegHeight >> String.fromInt >> height) numRings
+    , (String.fromInt >> x) (pegPosition p)
+    , (String.fromInt >> y) selectionHeight
     , onClick (Select p)
     ] []
 
@@ -116,9 +114,9 @@ baseHeight = 20
 
 base numRings =
   rect
-    [ (toString >> width) baseWidth
-    , (toString >> height) baseHeight
-    , (toString >> y) (pegHeight numRings + selectionHeight)
+    [ (String.fromInt >> width) baseWidth
+    , (String.fromInt >> height) baseHeight
+    , (String.fromInt >> y) (pegHeight numRings + selectionHeight)
     , class "base"
     ] []
 
@@ -128,7 +126,7 @@ arrow : Peg -> Svg.Svg msg
 arrow p =
   Svg.polygon
     [ points "5,15 10,8 7,8 7,0 3,0 3,8 0,8"
-    , transform ("translate(" ++ toString (pegPosition p) ++ ",0)")
+    , transform ("translate(" ++ String.fromInt (pegPosition p) ++ ",0)")
     ] []
 
 
@@ -136,7 +134,7 @@ arrow p =
 drawPeg numRings selection p rings =
   let
     drawRing =
-      ring numRings p (List.length rings)
+      makeRing numRings p (List.length rings)
 
     selectionIndicator =
       if isSelected p selection then
@@ -145,13 +143,13 @@ drawPeg numRings selection p rings =
         []
 
     pegs =
-      [ peg p numRings ]
+      [ makePeg p numRings ]
 
     items =
       List.indexedMap drawRing rings
   in
     Svg.g
-      [ class "pegGroup", width (toString ringMaxWidth) ]
+      [ class "pegGroup", width (String.fromInt ringMaxWidth) ]
       (List.concat [ pegs, items, selectionIndicator ])
 
 
@@ -171,8 +169,8 @@ board model =
       drawPeg model.rings model.selected
   in
     svg
-      [ (toString >> width) baseWidth
-      , (toString >> height) (baseHeight + pegHeight model.rings + selectionHeight)
+      [ (String.fromInt >> width) baseWidth
+      , (String.fromInt >> height) (baseHeight + pegHeight model.rings + selectionHeight)
       ]
       [ base model.rings
       , f Left model.left
@@ -185,7 +183,7 @@ inputNumRings: Int -> String -> Msg
 inputNumRings numRings x =
   let
     decoded =
-      Result.withDefault numRings (String.toInt x)
+      Maybe.withDefault numRings (String.toInt x)
   in
     NumRings (max minNumRings (min maxNumRings decoded))
 
@@ -200,8 +198,8 @@ ringInput numRings =
     [ Html.Attributes.type_ "number"
     , Html.Attributes.min "1"
     , Html.Attributes.max "6"
-    , Html.Attributes.value (toString numRings)
-    , on "change" (Json.map (inputNumRings numRings) Html.Events.targetValue)
+    , Html.Attributes.value (String.fromInt numRings)
+    , onInput (inputNumRings numRings)
     ] []
 
 
@@ -270,7 +268,7 @@ popList : List a -> List a
 popList xs =
   case xs of
     [] -> []
-    x :: xs -> xs
+    y :: ys -> ys
 
 
 allowed : Model -> Int -> Maybe Int -> Bool
@@ -279,12 +277,12 @@ allowed model from to =
     Nothing ->
       True
 
-    Just to ->
-      from < to
+    Just idx ->
+      from < idx
 
 
-updateImpl: Msg -> Model -> Model
-updateImpl msg model =
+update: Msg -> Model -> Model
+update msg model =
   case msg of
     Reset ->
       init model.rings
@@ -302,10 +300,6 @@ updateImpl msg model =
 
         Just from ->
           move model from peg
-
-update: Msg -> Model -> (Model, Cmd a)
-update msg model =
-    (updateImpl msg model, Cmd.none)
 
 move : Model -> Peg -> Peg -> Model
 move oldModel from to =
